@@ -1,6 +1,158 @@
 import React, { useEffect, useState} from 'react';
 import logo from './logo.svg';
 import './App.css';
+import {flatten} from 'flat'
+
+
+function downloadJSON(jsonData : Record<string, any>, filename = 'data.json') {
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonData));
+  const downloadAnchorNode = document.createElement('a');
+  downloadAnchorNode.setAttribute("href", dataStr);
+  downloadAnchorNode.setAttribute("download", filename);
+  document.body.appendChild(downloadAnchorNode);
+  downloadAnchorNode.click();
+  downloadAnchorNode.remove();
+}
+
+
+function filterObjectByRegex<T extends Record<string, any>>(obj: T, regex: RegExp): Partial<T> {
+  const result: Partial<T> = {};
+  for (const key in obj) {
+    if (regex.test(key) && obj[key] != "") {
+      result[key] = obj[key];
+    }
+  }
+  return result;
+}
+
+// Read the json file
+async function cleanJSONData() : Promise<Array<String>> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const jsonData = await fetchJsonFromUrl('datareturn.json')
+      const flattenedJson : Record<string, any> = flatten(jsonData)
+    
+      const regex = /\.text$/;
+      const filteredData = filterObjectByRegex(flattenedJson, regex);
+    
+      const dataArray = Object.values(filteredData)
+    
+      resolve(dataArray)
+
+    } catch (e) {
+      reject(`Clean JSON Failed: ${e}`)
+
+    }
+
+  })
+
+}
+
+//Extract Name
+function extractName(data : any) {
+  try {
+    return data[3]
+  } catch (e) {
+    console.log(`Could not parse name: ${e}`)
+  }
+}
+
+//Extract Address
+function extractAddress(data : any) {
+  try {
+    return(`${data[4]}, ${data[5]}`)
+  } catch (e) {
+    console.log(`Could not parse address: ${e}`)
+  }
+}
+
+//Helper function for converting $1,293 => 1293
+function convertCurrencyStringToNumber(currencyString: String): number {
+  // Remove the dollar sign and commas
+  const cleanedString = currencyString.replace(/[$,]/g, '');
+  // Convert the cleaned string to a number
+  const numberValue = parseFloat(cleanedString);
+  return numberValue;
+}
+
+//Extract Total Deposits
+function extractTotalDeposits(data : Array<String>) {
+  try {
+    const i = data.findIndex((v) => v === "+ Deposits and other credits") + 1
+    const j = data.findIndex((v) => v === "+ Interest paid") + 1
+  
+    const totalDeposits = convertCurrencyStringToNumber(data[i]) + convertCurrencyStringToNumber(data[j])
+  
+    return totalDeposits
+  } catch (e) {
+    console.log(`Could not parse total deposits: ${e}`)
+  }
+}
+
+
+//Extract Total Deposits
+function extractTotalATMWithdrawals(data : Array<String>) {
+  try {
+    const start = data.findIndex((v) => v === "Withdrawals and Other Debits") + 4
+    const end = data.findIndex((v) => v === "Account Service Charges and Fees") + 1
+
+    var totalATMWithdrawals = 0
+
+    for (let i = start; i < end-4; i += 4) {
+      let description = data[i+1]
+      let amount = convertCurrencyStringToNumber(data[i+3])
+      if (description === "ATM WITHDRAWAL") {
+        totalATMWithdrawals += amount
+      }
+    }
+
+    return totalATMWithdrawals
+
+  } catch (e) {
+    console.log(`Could not parse total ATM withdrawals: ${e}`)
+  }
+}
+
+//Extract Total Walmart Purchases
+function extractTotalWalmartPurchases(data : Array<String>) {
+  try {
+    const start = data.findIndex((v) => v === "Withdrawals and Other Debits") + 4
+    const end = data.findIndex((v) => v === "Account Service Charges and Fees") + 1
+
+    var totalWalmartPurchases = 0
+
+    for (let i = start; i < end-4; i += 4) {
+      let description = data[i+1]
+      let location = data[i+2]
+      let amount = convertCurrencyStringToNumber(data[i+3])
+      if (description === "POS PURCHASE" && location.includes("WAL-MART")) {
+        totalWalmartPurchases += amount
+      }
+    }
+
+    return totalWalmartPurchases
+
+  } catch (e) {
+    console.log(`Could not parse total walmart purchases: ${e}`)
+  }
+}
+
+
+cleanJSONData().then((data) => {
+  const name = extractName(data)
+  const address = extractAddress(data)
+  const totalDeposits = extractTotalDeposits(data)
+  const totalATMWithdrawals = extractTotalATMWithdrawals(data)
+  const totalWalmartPurchases = extractTotalWalmartPurchases(data)
+
+  console.log(`Name: ${name}`)
+  console.log(`Address: ${address}`)
+  console.log(`Total Deposits: ${totalDeposits}`)
+  console.log(`Total ATM Withdrawals: ${totalATMWithdrawals}`)
+  console.log(`Total Walmart Purchases: ${totalWalmartPurchases}`)
+})
+
+// Output something
 
 // Define types for the function's response
 interface PresignedUrlResponse {
@@ -110,7 +262,7 @@ async function convertPdfToJson(
   pages: string, // Can be a range or "all"
   destinationFile: string
 ): Promise<void> {
-  const queryPath = "/v1/pdf/convert/to/json";
+  const queryPath = "/v1/pdf/convert/to/json2";
 
   const jsonPayload = JSON.stringify({
     name: destinationFile,
@@ -148,14 +300,14 @@ async function convertPdfToJson(
   }
 }
 
-const fetchJsonFromUrl = async (url: string): Promise<any> => {
+async function fetchJsonFromUrl(url: string): Promise<any> {
   try {
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch JSON file: ${response.statusText}`);
     }
     const json = await response.json();
-    return json;
+    return json
   } catch (error) {
     console.error(`fetchJsonFromUrl(): ${error}`);
     throw error;
@@ -183,8 +335,7 @@ function App() {
         .then(([presignedUrl, url]) => {
           setPresignedUrl(presignedUrl); // Store the presigned URL
           uploadFile(apiKey, file, presignedUrl).then(() => {
-            //not sure if needs to be presigned or just regular url
-            convertPdfToJson(apiKey, url, password, "all", "destinationFile")
+            convertPdfToJson(apiKey, url, password, "", "destinationFile")
           })
         })
         .catch((err) => {
