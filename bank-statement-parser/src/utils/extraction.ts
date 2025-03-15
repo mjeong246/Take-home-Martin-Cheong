@@ -2,7 +2,15 @@ import {flatten} from 'flat'
 
 const PARSE_FAIL_MSG = "UNABLE TO PARSE"
 
-export function cleanJSONData(jsonData : Record<any, String>) : Array<String> {
+export interface bankStatementInfo {
+  Name: string | null;
+  Address: string | null;
+  "Total Deposits": string | null;
+  "Total ATM Withdrawals": string | null;
+  "Total Walmart Purchases": string | null;
+}
+
+export function cleanJSONData(jsonData : Record<any, String>) : Array<string> {
     try {
       const flattenedJson : Record<string, any> = flatten(jsonData)
     
@@ -30,7 +38,7 @@ function filterObjectByRegex<T extends Record<string, any>>(obj: T, regex: RegEx
   }
 
 //Extract Name
-function extractName(data : Array<String>) : String {
+function extractName(data : Array<string>) : string {
     try {
       return data[3]
     } catch (e) {
@@ -40,7 +48,7 @@ function extractName(data : Array<String>) : String {
   }
   
 //Extract Address
-function extractAddress(data : Array<String>) : String {
+function extractAddress(data : Array<string>) : string {
     try {
       return `${data[4]}, ${data[5]}`
     } catch (e) {
@@ -75,7 +83,7 @@ function extractTotalDeposits(data : Array<String>) {
   
   
 //Extract Total Deposits
-function extractTotalATMWithdrawals(data : Array<String>) : String {
+function extractTotalATMWithdrawals(data : Array<String>) : string {
     try {
       const start = data.findIndex((v) => v === "Withdrawals and Other Debits") + 4
       const end = data.findIndex((v) => v === "Account Service Charges and Fees") + 1
@@ -99,7 +107,7 @@ function extractTotalATMWithdrawals(data : Array<String>) : String {
   }
   
   //Extract Total Walmart Purchases
-function extractTotalWalmartPurchases(data : Array<String>) : String {
+function extractTotalWalmartPurchases(data : Array<String>) : string {
     try {
       const start = data.findIndex((v) => v === "Withdrawals and Other Debits") + 4
       const end = data.findIndex((v) => v === "Account Service Charges and Fees") + 1
@@ -123,19 +131,19 @@ function extractTotalWalmartPurchases(data : Array<String>) : String {
     }
   }
   
-  export function extractAllMetrics(data : Array<String>) {
+  export function extractAllMetrics(data : Array<string>) : bankStatementInfo{
 
     const name = extractName(data)
     const address = extractAddress(data)
     const totalDeposits = extractTotalDeposits(data)
     const totalATMWithdrawals = extractTotalATMWithdrawals(data)
     const totalWalmartPurchases = extractTotalWalmartPurchases(data)
-
+    
     return {
-        name: name,
-        address: address,
-        totalDeposits: totalDeposits,
-        totalATMWithdrawals: totalATMWithdrawals,
-        totalWalmartPurchases: totalWalmartPurchases
-    }
+      Name: name,
+      Address: address,
+      "Total Deposits": totalDeposits,
+      "Total ATM Withdrawals": totalATMWithdrawals,
+      "Total Walmart Purchases": totalWalmartPurchases
+    };
   }

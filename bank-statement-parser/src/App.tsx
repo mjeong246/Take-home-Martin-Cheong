@@ -1,13 +1,18 @@
-import React, { useEffect, useState} from 'react';
-import logo from './logo.svg';
+import React, {useState} from 'react';
 import './App.css';
 import {getPresignedUrl, uploadFile, convertPdfToJson} from './utils/apicalls'
-import {cleanJSONData, extractAllMetrics} from './utils/extraction'
+import {cleanJSONData, extractAllMetrics, bankStatementInfo} from './utils/extraction'
+import ClipLoader from "react-spinners/ClipLoader";
 
-
-// Example React component for using the function
 function App() {
   const [file, setFile] = useState<File | null>(null);
+
+  const [metrics, setMetrics] = useState<bankStatementInfo>({"Name": "MADING DONG",
+                                                 "Address": "YA MOM",
+                                                 "Total Deposits": "23443",
+                                                 "Total ATM Withdrawals": "243422",
+                                                 "Total Walmart Purchases": "2322424"})
+  const [isParsing, setIsParsing] = useState<Boolean>(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files ? e.target.files[0] : null;
@@ -15,29 +20,49 @@ function App() {
   };
 
   async function handleFileUpload() {
-  
     if (file) {
-      //Use API to convert PDF -> JSON
+      setIsParsing(true)
+      //Call API to convert uploaded PDF -> JSON
       const [presignedUrl, url] = await getPresignedUrl(file)
       await uploadFile(file, presignedUrl)
       const rawJSONdata = await convertPdfToJson(url)
       const cleanedJSONdata = cleanJSONData(rawJSONdata)
 
       //Extract relevant information
-      const {name, address, totalDeposits, totalATMWithdrawals, totalWalmartPurchases} = extractAllMetrics(cleanedJSONdata)
-
-      console.log(`Name: ${name}`)
-      console.log(`Address: ${address}`)
-      console.log(`Total Deposits: ${totalDeposits}`)
-      console.log(`Total ATM Withdrawals: ${totalATMWithdrawals}`)
-      console.log(`Total Walmart Purchases: ${totalWalmartPurchases}`)
+      const extractedMetrics : bankStatementInfo = extractAllMetrics(cleanedJSONdata)
+      setMetrics(extractedMetrics)
+      setIsParsing(false)
     }
   }
 
   return (
-    <div>
-      <input type="file" onChange={handleFileChange} />
-      <button onClick={handleFileUpload}>Upload</button>
+    <div className = "wrapper">
+
+  
+      <div className="title">Bank Statement Parser</div>
+
+      <div className = "buttonsWrapper">
+        <input type="file" onChange={handleFileChange} />
+        {isParsing ? 
+            <ClipLoader
+              color={"white"}
+              loading={true}
+              size={20}
+              aria-label="Loading Spinner"
+              data-testid="loader"
+            /> : 
+          <button onClick={handleFileUpload} disabled={file === null}>Parse Bank Statement</button>
+        }
+      </div>
+
+      <table>
+        {Object.keys(metrics).map((k) => (
+        <tr key={k}>
+          <td className="metricField">{k}</td>
+          <td className="metricValue">{metrics[k as keyof bankStatementInfo]}</td>
+        </tr>
+        ))}
+      </table>
     </div>
   );
 };
