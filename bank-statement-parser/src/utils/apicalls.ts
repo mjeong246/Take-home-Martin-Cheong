@@ -21,10 +21,9 @@ export function getPresignedUrl(localFile: File): Promise<[string, string]> {
         return;
       }
   
-      // Prepare request to `Get Presigned URL` API endpoint
+      //Prepare request to `Get Presigned URL` API endpoint
       const queryPath = `https://api.pdf.co/v1/file/upload/get-presigned-url?contenttype=application/octet-stream&name=${encodeURI(localFile.name)}`;
   
-      // API request options
       const reqOptions: RequestInit = {
         method: 'GET',
         headers: {
@@ -32,7 +31,7 @@ export function getPresignedUrl(localFile: File): Promise<[string, string]> {
         },
       };
   
-      // Send request using fetch
+      //Send request
       fetch(queryPath, reqOptions)
         .then((response) => response.json())
         .then((data: PresignedUrlResponse) => {
@@ -50,45 +49,40 @@ export function getPresignedUrl(localFile: File): Promise<[string, string]> {
     });
   }
 
-  // Define the function to upload a file
 export function uploadFile(localFile: File, uploadUrl: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      // Use FileReader to read the file in the browser
+
       const reader = new FileReader();
       
-      // When the file is read successfully
       reader.onload = () => {
         const fileData = reader.result as ArrayBuffer;
         
-        // Create a PUT request using fetch
         fetch(uploadUrl, {
           method: "PUT",
           headers: {
             "Content-Type": "application/octet-stream",
-            "x-api-key": API_KEY, // If needed, you can include the API key in the headers
+            "x-api-key": API_KEY,
           },
-          body: fileData, // Use the file data read by the FileReader
+          body: fileData,
         })
           .then((response) => {
             console.log(response)
             if (response.ok) {
               console.log("File successfully uploaded")
-              resolve(); // Successfully uploaded
+              resolve();
             } else {
-              reject(`Upload failed: ${response.statusText}`); // Handle response error
+              reject(`Upload failed: ${response.statusText}`);
             }
           })
           .catch((error) => {
-            reject(`Upload failed: ${error.message}`); // Handle network or other errors
+            reject(`Upload failed: ${error.message}`);
           });
       };
   
-      // If an error occurs while reading the file
       reader.onerror = (error) => {
         reject(`File read error: ${error}`);
       };
   
-      // Read the file as an ArrayBuffer
       reader.readAsArrayBuffer(localFile);
     });
 }
@@ -118,7 +112,7 @@ export async function convertPdfToJson(uploadedFileUrl: string): Promise<any> {
     };
   
     try {
-      // Make the API request
+      //Make the API request
       const response = await fetch(`https://api.pdf.co${queryPath}`, requestOptions);
       const data: ConvertPdfToJsonResponse = await response.json();
       const jsonUrl = data.url;
