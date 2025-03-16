@@ -7,11 +7,11 @@ import ClipLoader from "react-spinners/ClipLoader";
 function App() {
   const [file, setFile] = useState<File | null>(null);
 
-  const [metrics, setMetrics] = useState<bankStatementInfo>({"Name": "MADING DONG",
-                                                 "Address": "YA MOM",
-                                                 "Total Deposits": "23443",
-                                                 "Total ATM Withdrawals": "243422",
-                                                 "Total Walmart Purchases": "2322424"})
+  const [metrics, setMetrics] = useState<bankStatementInfo>({"Name": null,
+                                                 "Address": null,
+                                                 "Total Deposits": null,
+                                                 "Total ATM Withdrawals": null,
+                                                 "Total Walmart Purchases": null})
   const [isParsing, setIsParsing] = useState<Boolean>(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,22 +40,28 @@ function App() {
 
   
       <div className="title">Bank Statement Parser</div>
+      <div>Upload the bank statement as a PDF, then click "Parse Bank Statement" to read the different fields. Note that it takes around 20 seconds for processing.</div>
 
       <div className = "buttonsWrapper">
-        <input type="file" onChange={handleFileChange} />
+        <input type="file" accept="application/pdf" onChange={handleFileChange} />
         {isParsing ? 
+        <div className="parseStatement">
+            <span>Parsing your bank statement...</span>
             <ClipLoader
               color={"white"}
               loading={true}
-              size={20}
+              size={30}
               aria-label="Loading Spinner"
               data-testid="loader"
-            /> : 
+              className="clipLoader"
+            /> 
+        </div>
+     : 
           <button onClick={handleFileUpload} disabled={file === null}>Parse Bank Statement</button>
         }
       </div>
 
-      <table>
+      <table align="left">
         {Object.keys(metrics).map((k) => (
         <tr key={k}>
           <td className="metricField">{k}</td>

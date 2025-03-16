@@ -15,12 +15,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 30px;
-  width: 70vw;
+  width: 50vw;
 }
 
 .buttonsWrapper {
   display: flex;
   justify-content: space-between;
+  align-items: center;
 }
 
 .title {
@@ -29,12 +30,18 @@ body {
 }
 
 input::file-selector-button, button {
+  font-family: "Montserrat";
   color: black;
   background-color: white;
-  border: none;
+  border: solid black;
   padding: 15px;
   border-radius: 5px;
-  margin: 10px;
+}
+
+input::file-selector-button:hover, button:hover {
+  color: white;
+  border: solid white;
+  background-color: black;
 }
 
 table {
@@ -44,10 +51,17 @@ table {
   border-radius: 5px;
 }
 
+
 .metricField {
   font-weight: 600;
 }
 
 .metricValue {
   font-weight: 200;
+}
+
+.parseStatement {
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
